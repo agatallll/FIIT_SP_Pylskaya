@@ -63,6 +63,7 @@ private:
 
     class sorted_free_iterator
     {
+        friend class allocator_sorted_list;
         void* _free_ptr;
 
     public:
@@ -92,6 +93,7 @@ private:
 
     class sorted_iterator
     {
+        friend class allocator_sorted_list;
         void* _free_ptr;
         void* _current_ptr;
         void* _trusted_memory;

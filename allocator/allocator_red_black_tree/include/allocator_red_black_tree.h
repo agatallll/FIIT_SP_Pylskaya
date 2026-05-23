@@ -12,7 +12,7 @@ class allocator_red_black_tree final:
     public allocator_with_fit_mode
 {
 
-private:
+public:
 
     enum class block_color : unsigned char
     { RED, BLACK };
@@ -22,6 +22,8 @@ private:
         bool occupied : 4;
         block_color color : 4;
     };
+
+private:
 
     void *_trusted_memory;
 
@@ -103,6 +105,8 @@ private:
     };
 
     friend class rb_iterator;
+
+public:
 
     rb_iterator begin() const noexcept;
     rb_iterator end() const noexcept;

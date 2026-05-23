@@ -72,6 +72,7 @@ private:
 
     class boundary_iterator
     {
+        friend class allocator_boundary_tags;
         void* _occupied_ptr;
         bool _occupied;
         void* _trusted_memory;

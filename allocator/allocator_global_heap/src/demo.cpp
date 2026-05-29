@@ -1,100 +1,100 @@
-#include <allocator_global_heap.h> // заголовок реализованного аллокатора глобальной кучи
-#include <iostream>                // стандартный поток вывода для печати результатов
-#include <string>                  // строковый тип для формирования сообщений
-#include <stdexcept>               // стандартные исключения для обработки ошибок
-#include <limits>                  // заголовок для numeric_limits (проверка переполнения)
+#include <allocator_global_heap.h> // препроцессор вставляет заголовок нашего аллокатора. компилятор ищет файл в папках include (пути настроены в cmake).
+#include <iostream>                // стандартный заголовок для потоков ввода-вывода (input/output stream). содержит std::cout (вывод в консоль), std::cerr (вывод ошибок) и std::cin (ввод).
+#include <string>                  // стандартный заголовок для класса std::string и вспомогательных функций для символов.
+#include <stdexcept>               // стандартные классы исключений: std::invalid_argument, std::overflow_error, std::bad_alloc и др. исключение — это объект, который «бросается» (throw) при ошибке и «ловится» (catch) обработчиком.
+#include <limits>                  // заголовок с шаблоном std::numeric_limits. позволяет узнать максимальные и минимальные значения для любого числового типа.
 
-int main()
+int main() // главная функция программы. выполнение начинается именно с main. int — тип возвращаемого значения (код завершения: 0 — успех, иначе — ошибка).
 {
-    try // внешний блок перехвата: приложение не должно завершаться аварийно
+    try // начало блока try (попытка). код внутри выполняется как обычно, но если где-то встретится throw (бросок исключения), выполнение немедленно перейдёт в соответствующий блок catch.
     {
-        allocator_global_heap allocator_instance; // создаём объект аллокатора (собственный мьютекс)
-        
+        allocator_global_heap allocator_instance; // создаём локальный объект типа allocator_global_heap на стеке. вызывается конструктор по умолчанию: внутри него через std::make_unique создаётся мьютекс. allocator_instance — имя переменной.
+
         // ---------- демонстрация 1: массив целых чисел ----------
-        int const int_count = 5; // количество элементов типа int для размещения
-        if (int_count < 0) // валидация: количество элементов не может быть отрицательным
+        int const int_count = 5; // объявляем константу типа int. const означает, что значение нельзя изменить после создания. здесь задаём количество элементов массива.
+        if (int_count < 0) // условная проверка. хотя int_count = 5 и условие всегда ложно, это защитная валидация: если бы значение пришло извне, отрицательное количество элементов было бы ошибкой.
         {
-            throw std::invalid_argument("negative element count for int array"); // сообщаем об ошибке параметра
+            throw std::invalid_argument("negative element count for int array"); // оператор throw создаёт объект-исключение типа std::invalid_argument и прерывает выполнение текущей функции. std::invalid_argument — класс из <stdexcept>, наследник std::exception. строка в скобках — сообщение об ошибке. управление сразу передаётся catch ниже.
         }
-        
-        void *raw_int = allocator_instance.allocate(sizeof(int) * static_cast<size_t>(int_count)); // выделяем память под массив int
-        int *int_array = static_cast<int *>(raw_int); // приводим void* к типизированному указателю
-        
-        for (int i = 0; i < int_count; ++i) // заполняем массив в отдельном контексте работы с данными
+
+        void *raw_int = allocator_instance.allocate(sizeof(int) * static_cast<size_t>(int_count)); // вызываем метод allocate у объекта allocator_instance. этот метод унаследован от std::pmr::memory_resource через smart_mem_resource. sizeof(int) — оператор sizeof возвращает размер типа int в байтах (обычно 4). static_cast<size_t>(int_count) — явное безопасное приведение типа: static_cast — оператор c++, который преобразует int в size_t (беззнаковый тип для размеров). умножаем: получаем общее число байтов под 5 int. метод allocate возвращает void* — сырой нетипизированный указатель на память.
+        int *int_array = static_cast<int *>(raw_int); // static_cast<int *> — приводим void* к int*. void* — указатель на неизвестный тип, его нельзя разыменовать напрямую (нельзя написать raw_int[0]). приведение к int* сообщает компилятору: «по этому адресу лежат целые числа».
+
+        for (int i = 0; i < int_count; ++i) // цикл for. int i = 0 — создаём счётчик i типа int и инициализируем нулём. i < int_count — условие продолжения: пока i меньше 5. ++i — префиксный инкремент: увеличиваем i на 1 ДЕЛАЕМ ДО использования в следующей итерации (в данном случае эквивалентно i++, но чуть быстрее).
         {
-            int_array[i] = i * 10; // записываем значения в выделенный блок
+            int_array[i] = i * 10; // обращение к i-му элементу массива. компилятор вычисляет адрес: начало массива + i * sizeof(int), и записывает туда значение i * 10.
         }
-        
-        std::cout << "int array: "; // начинаем вывод результатов
-        for (int i = 0; i < int_count; ++i) // итерируемся по размещённым элементам
+
+        std::cout << "int array: "; // std::cout — глобальный объект стандартного потока вывода (консоль). std:: — пространство имён стандартной библиотеки. << — оператор вставки в поток: строка "int array: " отправляется в консоль.
+        for (int i = 0; i < int_count; ++i)
         {
-            std::cout << int_array[i] << ' '; // отправляем данные в поток вывода
+            std::cout << int_array[i] << ' '; // выводим значение int_array[i], затем символ пробела (' ' — символьный литерал в одинарных кавычках).
         }
-        std::cout << '\n'; // завершаем строку вывода
-        
+        std::cout << '\n'; // выводим символ новой строки (escape-последовательность \n). std::endl тоже делает новую строку, но ещё принудительно сбрасывает буфер (flush), а '\n' просто добавляет символ и быстрее.
+
         // ---------- демонстрация 2: массив вещественных чисел ----------
-        size_t double_count = 3; // количество элементов типа double
-        if (double_count > std::numeric_limits<size_t>::max() / sizeof(double)) // проверка на переполнение при умножении
+        size_t double_count = 3; // size_t — стандартный беззнаковый целочисленный тип для размеров и индексов (обычно 8 байт на 64-бит системе). используем его, чтобы исключить отрицательные значения.
+        if (double_count > std::numeric_limits<size_t>::max() / sizeof(double)) // защита от переполнения. std::numeric_limits<size_t> — шаблонный класс, предоставляющий информацию о числовых типах. метод max() возвращает максимальное значение size_t. если бы мы написали double_count * sizeof(double) и результат превысил бы max, произошло бы целочисленное переполнение (неопределённое поведение). поэтому проверяем безопасно: a > max / b  эквивалентно  a * b > max, но без риска переполнения.
         {
-            throw std::overflow_error("size overflow for double array"); // предотвращаем переполнение
+            throw std::overflow_error("size overflow for double array"); // бросаем исключение переполнения. std::overflow_error — класс из <stdexcept>, наследник std::runtime_error. сообщение описывает проблему.
         }
-        
-        void *raw_double = allocator_instance.allocate(sizeof(double) * double_count); // выделяем память под double массив
-        double *double_array = static_cast<double *>(raw_double); // приводим указатель к типу double*
-        
-        double_array[0] = 3.14; // записываем первое вещественное значение
-        double_array[1] = 2.71; // записываем второе вещественное значение
-        double_array[2] = 1.41; // записываем третье вещественное значение
-        
-        std::cout << "double array: " << double_array[0] << ", " // выводим размещённые double-значения
-                  << double_array[1] << ", " << double_array[2] << '\n';
-        
+
+        void *raw_double = allocator_instance.allocate(sizeof(double) * double_count); // запрашиваем память под 3 числа double. sizeof(double) обычно 8 байт (вещественное число двойной точности).
+        double *double_array = static_cast<double *>(raw_double); // приводим void* к double*, чтобы компилятор знал, что по адресу лежат вещественные числа.
+
+        double_array[0] = 3.14; // запись по индексу 0. литерал 3.14 имеет тип double (вещественное число с плавающей точкой двойной точности).
+        double_array[1] = 2.71; // индекс 1.
+        double_array[2] = 1.41; // индекс 2.
+
+        std::cout << "double array: " << double_array[0] << ", " // последовательная вставка в поток: сначала строка, потом первое число, потом запятая с пробелом.
+                  << double_array[1] << ", " << double_array[2] << '\n'; // оператор << можно вызывать цепочкой, потому что каждый вызов возвращает ссылку на тот же поток std::cout (это позволяет писать a << b << c).
+
         // ---------- демонстрация 3: строка символов ----------
-        char const *source = "hello, global heap!"; // исходная строка для копирования
-        size_t str_len = std::char_traits<char>::length(source) + 1; // длина с учётом нуль-терминатора
-        
-        void *raw_str = allocator_instance.allocate(str_len); // выделяем память под строку
-        char *str = static_cast<char *>(raw_str); // приводим указатель к char*
-        
-        for (size_t i = 0; i < str_len; ++i) // копируем строку побайтно в выделенный блок
+        char const *source = "hello, global heap!"; // объявляем указатель source на константные символы. char const * означает «указатель на неизменяемые char». строковый литерал "hello, global heap!" хранится в статической памяти программы (только для чтения). source указывает на первый символ 'h'.
+        size_t str_len = std::char_traits<char>::length(source) + 1; // std::char_traits<char> — шаблонный класс из <string>, описывающий свойства символов типа char. метод length(const char*) вычисляет длину c-строки — количество символов до нуль-терминатора '\0'. +1 — добавляем байт под сам нуль-терминатор, чтобы при копировании получить корректную c-строку, которую можно напечатать.
+
+        void *raw_str = allocator_instance.allocate(str_len); // выделяем str_len байт через наш аллокатор.
+        char *str = static_cast<char *>(raw_str); // приводим void* к char*.
+
+        for (size_t i = 0; i < str_len; ++i) // цикл по всем байтам строки, включая нуль-терминатор. size_t i = 0 — счётчик беззнакового типа, безопасный для индексов.
         {
-            str[i] = source[i]; // копируем очередной символ
+            str[i] = source[i]; // побайтовое копирование: берём i-й символ из source и записываем в i-й элемент str.
         }
-        
-        std::cout << "char string: " << str << '\n'; // выводим скопированную строку
-        
+
+        std::cout << "char string: " << str << '\n'; // str имеет тип char*. когда char* передаётся в std::cout, оператор << интерпретирует его как c-строку (массив символов) и печатает всё до символа '\0'.
+
         // ---------- освобождение ресурсов ----------
-        allocator_instance.deallocate(str, str_len); // освобождаем память строки (байты передаются для совместимости интерфейса)
-        allocator_instance.deallocate(double_array, sizeof(double) * double_count); // освобождаем блок double
-        allocator_instance.deallocate(int_array, sizeof(int) * static_cast<size_t>(int_count)); // освобождаем блок int
-        
-        std::cout << "all blocks deallocated successfully\n"; // подтверждаем корректное освобождение памяти
+        allocator_instance.deallocate(str, str_len); // вызываем метод deallocate. str — указатель на блок. str_len — размер в байтах (передаётся для совместимости с интерфейсом memory_resource, хотя наш аллокатор в do_deallocate_sm не использует размер, потому что ::operator delete не требует его). внутри deallocate вызовется do_deallocate_sm, который захватит мьютекс и вызовет ::operator delete.
+        allocator_instance.deallocate(double_array, sizeof(double) * double_count); // освобождаем массив double. sizeof(double) * double_count — общий размер блока в байтах.
+        allocator_instance.deallocate(int_array, sizeof(int) * static_cast<size_t>(int_count)); // освобождаем массив int. sizeof(int) — размер одного int. static_cast<size_t>(int_count) — безопасное приведение константы к беззнаковому типу для умножения.
+
+        std::cout << "all blocks deallocated successfully\n"; // сообщаем об успешном освобождении памяти.
     }
-    catch (std::bad_alloc const &e) // перехватываем ошибку нехватки памяти
+    catch (std::bad_alloc const &e) // блок catch — обработчик исключений. этот catch перехватывает исключения типа std::bad_alloc. const &e — передача по константной ссылке: мы не копируем объект-исключение, а получаем псевдоним на него и обещаем не менять. std::bad_alloc бросается, когда ::operator new не может выделить память (например, закончилась RAM).
     {
-        std::cerr << "memory allocation failed: " << e.what() << '\n'; // выводим диагностику в поток ошибок
-        return 1; // возвращаем ненулевой код завершения
+        std::cerr << "memory allocation failed: " << e.what() << '\n'; // std::cerr — стандартный поток ошибок (аналог std::cout, но для диагностики). e.what() — виртуальный метод базового класса std::exception, возвращающий текстовое описание ошибки (c-строку const char*).
+        return 1; // возвращаем ненулевой код ошибки. по соглашению 1 означает общую ошибку.
     }
-    catch (std::invalid_argument const &e) // перехватываем ошибки валидации аргументов
+    catch (std::invalid_argument const &e) // перехват исключения std::invalid_argument (наше собственное из проверки int_count < 0). если тип исключения не подошёл к предыдущему catch, компилятор идёт дальше и сравнивает типы.
     {
-        std::cerr << "invalid argument: " << e.what() << '\n'; // сообщаем о некорректных входных данных
-        return 2;
+        std::cerr << "invalid argument: " << e.what() << '\n';
+        return 2; // код ошибки 2 — некорректный аргумент.
     }
-    catch (std::overflow_error const &e) // перехватываем арифметические переполнения
+    catch (std::overflow_error const &e) // перехват исключения переполнения размера (из проверки double_count). const означает, что объект-исключение не изменяем. & означает ссылку, чтобы не копировать.
     {
-        std::cerr << "overflow error: " << e.what() << '\n'; // сообщаем о переполнении размера
-        return 3;
+        std::cerr << "overflow error: " << e.what() << '\n';
+        return 3; // код ошибки 3 — арифметическое переполнение.
     }
-    catch (std::exception const &e) // перехватываем прочие стандартные исключения
+    catch (std::exception const &e) // базовый класс почти всех стандартных исключений. этот catch поймает всё, что унаследовано от std::exception, но не поймано выше (например, std::runtime_error, std::logic_error и т.д.).
     {
-        std::cerr << "standard exception: " << e.what() << '\n'; // печатаем описание ошибки
-        return 4;
+        std::cerr << "standard exception: " << e.what() << '\n';
+        return 4; // код ошибки 4 — прочее стандартное исключение.
     }
-    catch (...) // перехватываем все остальные неизвестные исключения
+    catch (...) // многоточие ... означает «любое исключение любого типа». это универсальный обработчик на случай, если брошено что-то нестандартное (например, обычный int или пользовательский класс без наследования от std::exception).
     {
-        std::cerr << "unknown exception occurred\n"; // сообщаем о непредвиденной ошибке
-        return 5;
+        std::cerr << "unknown exception occurred\n";
+        return 5; // код ошибки 5 — неизвестное исключение.
     }
-    
-    return 0; // успешное завершение приложения
+
+    return 0; // успешное завершение программы. 0 — стандартный код успеха в c и c++.
 }
